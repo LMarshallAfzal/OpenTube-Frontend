@@ -1,5 +1,6 @@
 import type { PageLoad } from './$types';
-import { getVideo, type Video, type Format } from '$lib/api/video';
+import type { Video, Format } from '$lib/types';
+import { getVideo } from '$lib/api/video';
 
 function pickBestFormat(formats: Format[]): Format | undefined {
 	const candidates = formats.filter(
@@ -21,7 +22,7 @@ export const load: PageLoad = async ({ params }) => {
 	try {
 		const video: Video = await getVideo(params.id);
 
-		const audioFormat = video.formats.find(f => f.vcodec === 'none' && f.ext.startsWith('m'));
+		const audioFormat = video.formats.find(f => f.vcodec === 'none' && f.ext.startsWith('m') && f.format_note.toLowerCase().includes('english'));
 
 		return {
 			video,

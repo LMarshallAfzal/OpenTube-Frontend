@@ -1,22 +1,10 @@
 <script lang="ts">
+	import type { VendorDoc, VendorEl } from '$lib/types';
+
 	import { Icon } from 'svelte-icons-pack';
 	import { FaSolidPlay, FaSolidPause } from 'svelte-icons-pack/fa';
 	import { VscMute, VscUnmute } from 'svelte-icons-pack/vsc';
 	import { RiMediaFullscreenLine, RiMediaFullscreenExitFill } from 'svelte-icons-pack/ri';
-
-	type VendorDoc = Document & {
-		webkitExitFullscreen?: () => void;
-		msExitFullscreen?: () => void;
-
-		webkitFullscreenElement?: Element | null;
-		msFullscreenElement?: Element | null;
-	};
-
-	type VendorEl = HTMLElement & {
-		requestFullscreen?(): Promise<void>;
-		webkitRequestFullscreen?(): Promise<void>;
-		msRequestFullscreen?(): Promise<void>;
-	};
 
 	export let videoSrc: string = '';
 	export let audioSrc: string = '';
@@ -115,7 +103,7 @@
 <svelte:window on:keydown={onKeyDown} />
 
 <div class="flex flex-col">
-	<div class="mx-auto my-auto w-full p-4 sm:p-6 lg:p-8">
+	<div class="w-full">
 		<!-- Video wrapper -->
 		<div
 			class="relative w-full overflow-hidden bg-black"
@@ -123,7 +111,7 @@
 			style="aspect-ratio: {videoWidth && videoHeight ? `${videoWidth}/${videoHeight}` : '16/9'};"
 		>
 			<video
-				class="h-full w-full object-cover"
+				class="h-full w-full rounded-lg object-cover"
 				bind:this={videoEl}
 				bind:paused
 				bind:muted
