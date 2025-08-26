@@ -35,3 +35,5 @@ export interface Video {
 	formats: Format[];
 	view_count: number;
 };
+
+export type SearchResult = Video[];

@@ -1,8 +1,4 @@
-export interface Video {
-	id: string;
-	title: string;
-	url: string;
-}
+import type { Video } from "./types";
 
 export async function getVideo(
 	id: string,
