@@ -9,42 +9,48 @@
 	export let videoSrc: string = '';
 	export let audioSrc: string = '';
 	export let poster: string = '';
-	export let duration: number = 0;
+	export let duration: number | undefined;
 	export let videoWidth: number | undefined;
 	export let videoHeight: number | undefined;
 
 	let paused: boolean = true;
 	let muted: boolean = false;
 	let currentTime: number = 0;
-	let videoContainer: VendorEl | null = null;
 	let isFullScreen: boolean = false;
 	let progressPlayed: number = 0;
 
 	let videoEl: HTMLVideoElement | null = null;
 	let audioEl: HTMLAudioElement | null = null;
+	let videoContainer: VendorEl | null = null;
 
 	const togglePlay = (): void => {
+		if (!videoEl) return;
 		paused = !paused;
-		console.log('Paused button pressed');
-		if (videoEl && audioEl) {
-			paused ? videoEl.pause() : videoEl.play();
-			paused ? audioEl.pause() : audioEl.play();
+
+		if (paused) {
+			videoEl.pause();
+			audioEl?.pause();
+		} else {
+			videoEl.play();
+			audioEl?.play();
 		}
+		// paused ? videoEl.pause() : videoEl.play();
+		// paused ? audioEl.pause() : audioEl.play();
 	};
 
 	const toggleAudio = (): void => {
 		muted = !muted;
+		if (audioEl) audioEl.muted = muted;
 	};
 
-	const formatVideoTime = (timeInSeconds: number): string => {
-		const hour = Math.floor(timeInSeconds / 3600);
-		const minutes = Math.floor((timeInSeconds % 3600) / 60)
+	const formatVideoTime = (t: number): string => {
+		const hour = Math.floor(t / 3600);
+		const minutes = Math.floor((t % 3600) / 60)
 			.toString()
 			.padStart(2, '0');
-		const seconds = Math.floor(timeInSeconds % 60)
+		const seconds = Math.floor(t % 60)
 			.toString()
 			.padStart(2, '0');
-
 		return `${hour > 0 ? hour.toString().padStart(2, '0') + ':' : ''}${minutes}:${seconds}`;
 	};
 
@@ -52,52 +58,75 @@
 		const doc: VendorDoc = document as VendorDoc;
 
 		if (doc.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement) {
-			// Exit fullscreen mode
-
-			if (doc.exitFullscreen) {
-				doc.exitFullscreen();
-			} else if (doc.webkitExitFullscreen) {
-				doc.webkitExitFullscreen();
-			} else if (doc.msExitFullscreen) {
-				doc.msExitFullscreen();
-			}
-
+			doc.exitFullscreen?.() ?? doc.webkitFullscreenElement?.() ?? doc.msExitFullscreen?.();
 			isFullScreen = false;
-		} else {
-			// Enter fullscreen mode
-			if (!videoContainer) return;
+			return;
+		}
 
-			const el: VendorEl = videoContainer;
-			if (el.requestFullscreen) {
-				el.requestFullscreen();
-			} else if (el.webkitRequestFullscreen) {
-				el.webkitRequestFullscreen();
-			} else if (el.msRequestFullscreen) {
-				el.msRequestFullscreen();
-			}
+		if (videoContainer) return;
 
-			isFullScreen = true;
+		const el: VendorEl = videoContainer as VendorEl;
+		el.requestFullscreen?.() ?? el.webkitRequestFullscreen?.() ?? el.msRequestFullscreen?.();
+		isFullScreen = true;
+	};
+
+	const syncAudioToVideo = (): void => {
+		if (!audioEl || !videoEl) return;
+
+		// if the audio is out of sync by > 0.1s, jump it
+		if (Math.abs(audioEl.currentTime - videoEl.currentTime) > 0.1) {
+			audioEl.currentTime = videoEl.currentTime;
 		}
 	};
 
 	const handleTimeUpdate = (): void => {
-		const diff = currentTime - (audioEl?.currentTime ?? 0);
-		if (Math.abs(diff) > 0.1) {
-			audioEl!.currentTime = currentTime;
-		}
-
-		progressPlayed = (currentTime / duration) * 100;
+		currentTime = videoEl?.currentTime ?? 0;
+		syncAudioToVideo();
+		progressPlayed = (duration ? currentTime / duration : 0) * 100;
 	};
 
-	const onKeyDown = (event: KeyboardEvent): void => {
-		if (event.key === 'f' || event.key === 'F') {
+	const onKeyDown = (e: KeyboardEvent): void => {
+		if (['f', 'F'].includes(e.key)) toggleFullScreen();
+		if (e.key === 'f' || e.key === 'F') {
+			e.preventDefault();
 			toggleFullScreen();
 		}
-
-		if (event.key === ' ') {
-			togglePlay();
-		}
 	};
+
+	let progressRef: HTMLDivElement | null = null;
+
+	const seekTo = (ratio: number): void => {
+		if (!videoEl || !duration) return;
+		videoEl.currentTime = ratio * duration;
+	};
+
+	const onProgressClick = (e: MouseEvent): void => {
+		if (!progressRef) return;
+		const rect = progressRef.getBoundingClientRect();
+		const clickX = e.clientX - rect.left;
+		const ratio = Math.min(Math.max(clickX / rect.width, 0), 1);
+		seekTo(ratio);
+	};
+
+	let isDragging = false;
+
+	function onDragStart(e: MouseEvent) {
+		isDragging = true;
+		onProgressClick(e);
+		document.addEventListener('mousemove', onDragMove);
+		document.addEventListener('mouseup', onDragEnd);
+	}
+
+	function onDragMove(e: MouseEvent) {
+		if (!isDragging) return;
+		onProgressClick(e);
+	}
+
+	function onDragEnd() {
+		isDragging = false;
+		document.removeEventListener('mousemove', onDragMove);
+		document.removeEventListener('mouseup', onDragEnd);
+	}
 </script>
 
 <svelte:window on:keydown={onKeyDown} />
@@ -117,6 +146,7 @@
 				bind:muted
 				bind:currentTime
 				bind:duration
+				preload="auto"
 				on:timeupdate={handleTimeUpdate}
 				{poster}
 			>
@@ -133,8 +163,18 @@
 			<div class="absolute inset-x-0 bottom-0 bg-black/60">
 				<!-- Progress bar -->
 				<div class="px-2 py-1">
-					<div class="relative h-1 cursor-pointer overflow-hidden rounded-lg bg-gray-700">
+					<div
+						class="relative h-1 cursor-pointer overflow-hidden rounded-lg bg-gray-700"
+						role="progressbar"
+						bind:this={progressRef}
+						on:mousedown={onDragStart}
+						on:click={onProgressClick}
+					>
 						<div class="h-full bg-white" style="width: {progressPlayed}%"></div>
+						<div
+							class="left-[calc(var(--played, 0%)-10px)] absolute -top-1 h-4 w-4 rounded-full bg-white shadow-md"
+							style="--played:{progressPlayed}%"
+						></div>
 					</div>
 				</div>
 
@@ -156,7 +196,7 @@
 						</button>
 
 						<p class="test-xs whitespace-nowrap text-white">
-							{formatVideoTime(currentTime)} / {formatVideoTime(duration)}
+							{formatVideoTime(currentTime)} / {formatVideoTime(duration ?? 0)}
 						</p>
 					</div>
 

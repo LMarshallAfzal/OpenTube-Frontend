@@ -2,6 +2,7 @@
 	import type { PageData } from './$types';
 	import type { Format, Video } from '$lib/types';
 
+	import { onMount } from 'svelte';
 	import thumbnailPlaceholder from '$lib/assets/thumbnail-placeholder.jpg';
 	import Player from '$lib/components/player.svelte';
 	import VideoDetail from '$lib/components/VideoDetail.svelte';
@@ -29,12 +30,20 @@
 		formats: formats,
 		view_count: viewCount ?? 0
 	}));
+
+	let showPlayer = false;
+
+	onMount(() => {
+		showPlayer = true;
+	});
 </script>
 
 <div class="mt-4 flex h-screen w-full">
 	<section class="flex w-2/3 flex-col items-start justify-start">
 		<div class="p-4 sm:p-6 lg:p-8">
-			<Player {videoSrc} {audioSrc} {videoHeight} {videoWidth} {poster} {duration} />
+			{#if showPlayer}
+				<Player {videoSrc} {audioSrc} {videoHeight} {videoWidth} {poster} {duration} />
+			{/if}
 			<VideoDetail {videoTitle} {viewCount} />
 		</div>
 	</section>

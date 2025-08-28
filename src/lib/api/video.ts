@@ -12,5 +12,5 @@ export async function getVideo(
 		throw new Error(`Could not load video ${id}: ${res.status} ${res.statusText}`);
 	}
 
-	return res.json() as Promise<Video>;
+	return (await res.json()) as Video;
 }

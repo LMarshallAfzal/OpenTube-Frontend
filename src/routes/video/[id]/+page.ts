@@ -18,11 +18,16 @@ function pickBestFormat(formats: Format[]): Format | undefined {
 	return candidates[0];
 }
 
-export const load: PageLoad = async ({ params }) => {
+export const load: PageLoad = async ({ params, fetch }) => {
 	try {
-		const video: Video = await getVideo(params.id);
+		const video: Video = await getVideo(params.id, fetch);
 
-		const audioFormat = video.formats.find(f => f.vcodec === 'none' && f.ext.startsWith('m') && f.format_note.toLowerCase().includes('english'));
+		const audioFormat = video.formats.find(
+			f =>
+				f.vcodec === 'none' &&
+				f.ext.startsWith('m') &&
+				f.format_note.toLowerCase().includes('english')
+		);
 
 		return {
 			video,
