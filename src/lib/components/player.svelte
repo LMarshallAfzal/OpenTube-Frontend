@@ -34,8 +34,6 @@
 			videoEl.play();
 			audioEl?.play();
 		}
-		// paused ? videoEl.pause() : videoEl.play();
-		// paused ? audioEl.pause() : audioEl.play();
 	};
 
 	const toggleAudio = (): void => {

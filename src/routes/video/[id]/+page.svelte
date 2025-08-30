@@ -10,14 +10,16 @@
 
 	export let data: PageData;
 
-	const videoSrc = data.format?.url;
+	const videoSrc = data.videoFormat?.url;
 	const audioSrc = data.audioFormat?.url;
-	const videoHeight = data.format?.height;
-	const videoWidth = data.format?.width;
+	const videoHeight = data.videoFormat?.height;
+	const videoWidth = data.videoFormat?.width;
 	const poster = data.video?.thumbnail ?? thumbnailPlaceholder;
 	const duration = data.video?.duration_in_seconds ?? 0;
 	const videoTitle = data.video?.title ?? 'Video Title';
 	const viewCount = data.video?.view_count;
+
+	console.log('Video Format:', data.videoFormat);
 
 	const formats: Format[] = [];
 
